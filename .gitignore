@@ -1,2 +1,8 @@
 # 项目排除路径
 /target/
+/accToken
+/config.json
+/mcAccess
+/OneMonitor.iml
+/retoken
+/.idea/
