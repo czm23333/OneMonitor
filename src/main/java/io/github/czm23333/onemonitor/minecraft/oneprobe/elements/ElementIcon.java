@@ -33,7 +33,7 @@ public class ElementIcon extends Element {
         return GraphUtil.newNode("Icon (Element)")
                 .link(GraphUtil.newNode(iconLocation + "(IconLocation)"), GraphUtil.newNode(u + " (u)"),
                         GraphUtil.newNode(v + " (v)"), GraphUtil.newNode(w + " (w)"), GraphUtil.newNode(h + " (h)"),
-                        GraphUtil.newNode(width + " (width)"), GraphUtil.newNode(height + " (Height)"),
+                        GraphUtil.newNode(width + " (Width)"), GraphUtil.newNode(height + " (Height)"),
                         GraphUtil.newNode(textureWidth + " (TextureWidth)"),
                         GraphUtil.newNode(textureHeight + " (TextureHeight)"));
     }
