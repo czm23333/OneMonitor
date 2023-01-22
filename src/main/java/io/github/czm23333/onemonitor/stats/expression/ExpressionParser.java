@@ -95,7 +95,9 @@ public class ExpressionParser {
                     else break loop;
                 }
                 case '"' -> completeNode(stack, parseString(expression));
-                default -> throw new IllegalExpressionException("Unexpected char: " + c);
+                default -> {
+                    if (!Character.isSpaceChar(c)) throw new IllegalExpressionException("Unexpected char: " + c);
+                }
             }
         }
         if (stack.size() != 1 || !stack.getFirst().right())
