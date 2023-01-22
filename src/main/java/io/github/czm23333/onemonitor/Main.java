@@ -1,9 +1,8 @@
 package io.github.czm23333.onemonitor;
 
-import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import io.github.czm23333.onemonitor.minecraft.MinecraftBot;
-import io.github.czm23333.onemonitor.minecraft.oneprobe.ProbeRequest;
 import io.github.czm23333.onemonitor.minecraft.XBoxAuth;
+import io.github.czm23333.onemonitor.minecraft.oneprobe.ProbeRequest;
 import io.github.czm23333.onemonitor.telegram.TelegramBot;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;

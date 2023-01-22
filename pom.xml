@@ -84,9 +84,9 @@
             <version>6.4.0</version>
         </dependency>
         <dependency>
-            <groupId>org.barfuin.texttree</groupId>
-            <artifactId>text-tree</artifactId>
-            <version>2.1.2</version>
+            <groupId>guru.nidi</groupId>
+            <artifactId>graphviz-java</artifactId>
+            <version>0.18.1</version>
         </dependency>
     </dependencies>
 </project>

@@ -1,7 +1,6 @@
 package io.github.czm23333.onemonitor.minecraft;
 
 import com.github.steveice10.mc.auth.data.GameProfile;
-import com.github.steveice10.mc.protocol.MinecraftProtocol;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -102,7 +101,7 @@ public class XBoxAuth {
             // send.
             try {
                 var result = CommonInstance.HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-                if (result.statusCode() == 401) {
+                if (result.statusCode() != 200) {
                     LOGGER.info("XBox access token is invalid, refreshing...");
                     accessToken = null;
                     Files.deleteIfExists(Path.of(XBOX_ACCESS_TOKEN));

@@ -1,8 +1,7 @@
 package io.github.czm23333.onemonitor.minecraft.oneprobe.elements;
 
-import org.barfuin.texttree.api.DefaultNode;
-
-import java.util.List;
+import guru.nidi.graphviz.model.Node;
+import io.github.czm23333.onemonitor.minecraft.utils.GraphUtil;
 
 public class ElementText extends Element {
     public String text;
@@ -12,8 +11,7 @@ public class ElementText extends Element {
     }
 
     @Override
-    public DefaultNode toTree() {
-        return new DefaultNode("Text", null, null, "element",
-                List.of(new DefaultNode(text, null, null, "text", null)));
+    public Node toTree() {
+        return GraphUtil.newNode("Text (Element)").link(GraphUtil.newNode(text + " (Text)"));
     }
 }

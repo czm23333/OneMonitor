@@ -1,18 +1,24 @@
 package io.github.czm23333.onemonitor.telegram;
 
+import guru.nidi.graphviz.attribute.Rank;
+import guru.nidi.graphviz.engine.Format;
+import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.model.Factory;
 import io.github.czm23333.onemonitor.Config;
 import io.github.czm23333.onemonitor.minecraft.oneprobe.ProbeRequest;
 import io.github.czm23333.onemonitor.minecraft.oneprobe.elements.Element;
-import org.barfuin.texttree.api.DefaultNode;
-import org.barfuin.texttree.api.TextTree;
-import org.barfuin.texttree.api.TreeOptions;
-import org.barfuin.texttree.api.style.TreeStyles;
+import io.github.czm23333.onemonitor.minecraft.utils.GraphUtil;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -23,13 +29,6 @@ import java.util.stream.Collectors;
 
 public class TelegramBot extends TelegramLongPollingBot {
     private static final Logger LOGGER = Logger.getLogger("TelegramBot");
-    private static final TextTree RENDERER;
-
-    static {
-        TreeOptions options = new TreeOptions();
-        options.setStyle(TreeStyles.UNICODE_ROUNDED);
-        RENDERER = TextTree.newInstance(options);
-    }
 
     private final String botUsername;
     private final String botToken;
@@ -72,18 +71,49 @@ public class TelegramBot extends TelegramLongPollingBot {
                     y = Integer.parseInt(args[3]);
                     z = Integer.parseInt(args[4]);
                     channel.add(new ProbeRequest(dim, x, y, z, probeResponse -> {
-                        SendMessage send = new SendMessage();
-                        send.setChatId(chatId);
-                        if (probeResponse.timedOut) send.setText("Probe timed out");
-                        else if (!probeResponse.hasElements) send.setText("No element");
-                        else send.setText(RENDERER.render(new DefaultNode("-", null, null, null,
-                                    probeResponse.elements.stream().map(Element::toTree)
-                                            .collect(Collectors.toList()))));
-                        send.setReplyToMessageId(msgId);
-                        try {
-                            execute(send);
-                        } catch (TelegramApiException ex) {
-                            LOGGER.log(Level.WARNING, "Error sending message: ", ex);
+                        if (probeResponse.timedOut) {
+                            SendMessage send = new SendMessage();
+                            send.setChatId(chatId);
+                            send.setText("Probe timed out");
+                            send.setReplyToMessageId(msgId);
+                            try {
+                                execute(send);
+                            } catch (TelegramApiException ex) {
+                                LOGGER.log(Level.WARNING, "Error sending message: ", ex);
+                            }
+                        } else if (!probeResponse.hasElements) {
+                            SendMessage send = new SendMessage();
+                            send.setChatId(chatId);
+                            send.setText("No element");
+                            send.setReplyToMessageId(msgId);
+                            try {
+                                execute(send);
+                            } catch (TelegramApiException ex) {
+                                LOGGER.log(Level.WARNING, "Error sending message: ", ex);
+                            }
+                        } else {
+                            SendDocument send = new SendDocument();
+                            send.setChatId(chatId);
+                            byte[] image;
+                            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                                GraphUtil.reset();
+                                Graphviz.fromGraph(Factory.graph().directed().graphAttr()
+                                                .with(Rank.dir(Rank.RankDir.LEFT_TO_RIGHT))
+                                                .with(probeResponse.elements.stream().map(Element::toTree)
+                                                        .collect(Collectors.toList()))).render(Format.SVG)
+                                        .toOutputStream(outputStream);
+                                image = outputStream.toByteArray();
+                            } catch (IOException e) {
+                                LOGGER.log(Level.WARNING, "Error sending photo: ", e);
+                                return;
+                            }
+                            send.setDocument(new InputFile(new ByteArrayInputStream(image), "result.svg"));
+                            send.setReplyToMessageId(msgId);
+                            try {
+                                execute(send);
+                            } catch (TelegramApiException ex) {
+                                LOGGER.log(Level.WARNING, "Error sending photo: ", ex);
+                            }
                         }
                     }));
                 } catch (NumberFormatException e) {

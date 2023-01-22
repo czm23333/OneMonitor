@@ -6,7 +6,6 @@ import io.netty.buffer.ByteBuf;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
@@ -25,19 +24,20 @@ public class LegacyEncryptionResponsePacket implements MinecraftPacket {
         this.verifyToken = helper.readByteArray(in);
     }
 
-    @Override
-    public void serialize(ByteBuf out, MinecraftCodecHelper helper) throws IOException {
-        helper.writeByteArray(out, this.sharedKey);
-        helper.writeByteArray(out, this.verifyToken);
-    }
-
     private static byte[] runEncryption(Key key, byte[] data) {
         try {
-            Cipher cipher = Cipher.getInstance(key.getAlgorithm().equals("RSA") ? "RSA/ECB/PKCS1Padding" : "AES/CFB8/NoPadding");
+            Cipher cipher = Cipher.getInstance(
+                    key.getAlgorithm().equals("RSA") ? "RSA/ECB/PKCS1Padding" : "AES/CFB8/NoPadding");
             cipher.init(1, key);
             return cipher.doFinal(data);
         } catch (GeneralSecurityException var4) {
             throw new IllegalStateException("Failed to " + (1 == 2 ? "decrypt" : "encrypt") + " data.", var4);
         }
+    }
+
+    @Override
+    public void serialize(ByteBuf out, MinecraftCodecHelper helper) {
+        helper.writeByteArray(out, this.sharedKey);
+        helper.writeByteArray(out, this.verifyToken);
     }
 }

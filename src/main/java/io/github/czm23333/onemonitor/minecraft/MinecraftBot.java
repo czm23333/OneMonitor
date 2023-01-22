@@ -115,7 +115,8 @@ public class MinecraftBot extends SessionAdapter {
                 default -> gameBuilder.registerServerboundPacket(i, DummyPacket.class, DummyPacket::new);
             }
         }
-        MINECRAFT_1122_NECESSARY_CODEC = builder.state(ProtocolState.LOGIN, loginBuilder).state(ProtocolState.GAME, gameBuilder).build();
+        MINECRAFT_1122_NECESSARY_CODEC = builder.state(ProtocolState.LOGIN, loginBuilder)
+                .state(ProtocolState.GAME, gameBuilder).build();
     }
 
     private final SessionService service = new SessionService();
@@ -245,9 +246,8 @@ public class MinecraftBot extends SessionAdapter {
                     if (!worker.isAlive()) worker.start();
                 }
             }
-            case ClientboundLoginDisconnectPacket loginDisconnect -> {
-                disconnected(new DisconnectedEvent(_session, loginDisconnect.getReason().toString()));
-            }
+            case ClientboundLoginDisconnectPacket loginDisconnect -> disconnected(
+                    new DisconnectedEvent(_session, loginDisconnect.getReason().toString()));
             case ClientboundCustomPayloadPacket payload -> {
                 if (ONE_PROBE_CHANNEL.equals(payload.getChannel())) {
                     var helper = session.getCodecHelper();

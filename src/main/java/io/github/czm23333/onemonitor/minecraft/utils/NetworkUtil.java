@@ -23,10 +23,13 @@ public class NetworkUtil {
     private static final Logger LOGGER = Logger.getLogger("NetworkUtil");
     private static final String REGISTER_CHANNEL = "REGISTER";
 
-    public static String readNextProbeString(ByteBuf in)  {
+    public static String readNextProbeString(ByteBuf in) {
         int length = in.readInt();
-        if (length > 0) return in.readBytes(length).toString(StandardCharsets.UTF_8);
-        else return "";
+        if (length > 0) {
+            byte[] content = new byte[length];
+            in.readBytes(content);
+            return new String(content, StandardCharsets.UTF_8);
+        } else return "";
     }
 
     public static void readElements(ByteBuf in, PacketCodecHelper helper, List<Element> out) {
@@ -56,7 +59,8 @@ public class NetworkUtil {
         if (tag == null) {
             return null;
         } else if (tag.getClass() != expected) {
-            throw new IllegalArgumentException("Expected tag of type " + expected.getName() + " but got " + tag.getClass().getName());
+            throw new IllegalArgumentException(
+                    "Expected tag of type " + expected.getName() + " but got " + tag.getClass().getName());
         } else {
             return expected.cast(tag);
         }

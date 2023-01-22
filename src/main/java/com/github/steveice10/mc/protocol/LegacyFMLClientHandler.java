@@ -69,99 +69,89 @@ public class LegacyFMLClientHandler extends SessionAdapter {
     @Override
     public void packetReceived(Session session, Packet packet) {
         MinecraftProtocol protocol = (MinecraftProtocol) session.getPacketProtocol();
-        switch (protocol.getState()) {
-            case LOGIN -> {
-                switch (packet) {
-                    case ClientboundHelloPacket helloPacket -> {
-                        GameProfile profile = session.getFlag("profile");
-                        String accessToken = session.getFlag("access-token");
-                        if (profile == null || accessToken == null) {
-                            throw new UnexpectedEncryptionException();
-                        }
-
-                        SecretKey key;
-                        try {
-                            KeyGenerator gen = KeyGenerator.getInstance("AES");
-                            gen.init(128);
-                            key = gen.generateKey();
-                        } catch (NoSuchAlgorithmException var14) {
-                            throw new IllegalStateException("Failed to generate shared key.", var14);
-                        }
-
-                        SessionService sessionService = session.getFlag("session-service", new SessionService());
-                        String serverId = sessionService.getServerId(helloPacket.getServerId(),
-                                helloPacket.getPublicKey(), key);
-
-                        try {
-                            sessionService.joinServer(profile, accessToken, serverId);
-                        } catch (ServiceUnavailableException var11) {
-                            session.disconnect("Login failed: Authentication service unavailable.", var11);
-                            return;
-                        } catch (InvalidCredentialsException var12) {
-                            session.disconnect("Login failed: Invalid login session.", var12);
-                            return;
-                        } catch (RequestException var13) {
-                            session.disconnect("Login failed: Authentication error: " + var13.getMessage(), var13);
-                            return;
-                        }
-
-                        session.send(new LegacyEncryptionResponsePacket(helloPacket.getPublicKey(), key,
-                                helloPacket.getVerifyToken()));
-                        session.enableEncryption(protocol.enableEncryption(key));
-                    }
-                    case LegacyLoginSuccessPacket ignored -> protocol.setState(ProtocolState.GAME);
-                    case ClientboundLoginDisconnectPacket disconnectPacket -> session.disconnect(
-                            disconnectPacket.getReason().toString());
-                    case ClientboundLoginCompressionPacket compressionPacket -> session.setCompressionThreshold(
-                            compressionPacket.getThreshold(), false);
-                    default -> {}
+        switch (packet) {
+            case ClientboundHelloPacket helloPacket -> {
+                GameProfile profile = session.getFlag("profile");
+                String accessToken = session.getFlag("access-token");
+                if (profile == null || accessToken == null) {
+                    throw new UnexpectedEncryptionException();
                 }
+
+                SecretKey key;
+                try {
+                    KeyGenerator gen = KeyGenerator.getInstance("AES");
+                    gen.init(128);
+                    key = gen.generateKey();
+                } catch (NoSuchAlgorithmException var14) {
+                    throw new IllegalStateException("Failed to generate shared key.", var14);
+                }
+
+                SessionService sessionService = session.getFlag("session-service", new SessionService());
+                String serverId = sessionService.getServerId(helloPacket.getServerId(), helloPacket.getPublicKey(),
+                        key);
+
+                try {
+                    sessionService.joinServer(profile, accessToken, serverId);
+                } catch (ServiceUnavailableException var11) {
+                    session.disconnect("Login failed: Authentication service unavailable.", var11);
+                    return;
+                } catch (InvalidCredentialsException var12) {
+                    session.disconnect("Login failed: Invalid login session.", var12);
+                    return;
+                } catch (RequestException var13) {
+                    session.disconnect("Login failed: Authentication error: " + var13.getMessage(), var13);
+                    return;
+                }
+
+                session.send(new LegacyEncryptionResponsePacket(helloPacket.getPublicKey(), key,
+                        helloPacket.getVerifyToken()));
+                session.enableEncryption(protocol.enableEncryption(key));
             }
-            case GAME -> {
-                switch (packet) {
-                    case ClientboundKeepAlivePacket keepAlivePacket -> {
-                        if (session.getFlag("manage-keep-alive", true))
-                            session.send(new ServerboundKeepAlivePacket(keepAlivePacket.getPingId()));
-                    }
-                    case ClientboundDisconnectPacket disconnectPacket -> session.disconnect(
-                            disconnectPacket.getReason().toString());
-                    case ClientboundCustomPayloadPacket payload -> {
-                        if (FML_HANDSHAKE_CHANNEL.equals(payload.getChannel())) {
-                            ByteBuf buf = Unpooled.wrappedBuffer(payload.getData());
-                            try {
-                                byte discriminator = buf.readByte();
-                                switch (discriminator) {
-                                    case 0 -> { // ServerHello
-                                        byte protocolVersion = buf.readByte();
-                                        NetworkUtil.registerChannels(session, "FML|HS", "FML", "FML|MP", "FML",
-                                                "FORGE");
-                                        sendClientHello(session, protocolVersion);
-                                        sendModList(session, modList);
-                                    }
-                                    case 2 -> // ModList
-                                            sendHandshakeAck(session, (byte) 2); // WAITINGSERVERDATA
-                                    case 3 -> { // RegistryData
-                                        boolean hasMore = buf.readBoolean();
-                                        if (!hasMore) sendHandshakeAck(session, (byte) 3); // WAITINGSERVERCOMPLETE
-                                    }
-                                    case -1 -> { // HandshakeAck
-                                        byte phase = buf.readByte();
-                                        switch (phase) {
-                                            case 2 -> // WAITINGCACK
-                                                    sendHandshakeAck(session, (byte) 4); // PENDINGCOMPLETE
-                                            case 3 -> // COMPLETE
-                                                    sendHandshakeAck(session, (byte) 5); // COMPLETE
-                                        }
-                                    }
+            case LegacyLoginSuccessPacket ignored -> protocol.setState(ProtocolState.GAME);
+            case ClientboundLoginDisconnectPacket disconnectPacket -> session.disconnect(
+                    disconnectPacket.getReason().toString());
+            case ClientboundLoginCompressionPacket compressionPacket -> session.setCompressionThreshold(
+                    compressionPacket.getThreshold(), false);
+            case ClientboundKeepAlivePacket keepAlivePacket -> {
+                if (session.getFlag("manage-keep-alive", true))
+                    session.send(new ServerboundKeepAlivePacket(keepAlivePacket.getPingId()));
+            }
+            case ClientboundDisconnectPacket disconnectPacket -> session.disconnect(
+                    disconnectPacket.getReason().toString());
+            case ClientboundCustomPayloadPacket payload -> {
+                if (FML_HANDSHAKE_CHANNEL.equals(payload.getChannel())) {
+                    ByteBuf buf = Unpooled.wrappedBuffer(payload.getData());
+                    try {
+                        byte discriminator = buf.readByte();
+                        switch (discriminator) {
+                            case 0 -> { // ServerHello
+                                byte protocolVersion = buf.readByte();
+                                NetworkUtil.registerChannels(session, "FML|HS", "FML", "FML|MP", "FML", "FORGE");
+                                sendClientHello(session, protocolVersion);
+                                sendModList(session, modList);
+                            }
+                            case 2 -> // ModList
+                                    sendHandshakeAck(session, (byte) 2); // WAITINGSERVERDATA
+                            case 3 -> { // RegistryData
+                                boolean hasMore = buf.readBoolean();
+                                if (!hasMore) sendHandshakeAck(session, (byte) 3); // WAITINGSERVERCOMPLETE
+                            }
+                            case -1 -> { // HandshakeAck
+                                byte phase = buf.readByte();
+                                switch (phase) {
+                                    case 2 -> // WAITINGCACK
+                                            sendHandshakeAck(session, (byte) 4); // PENDINGCOMPLETE
+                                    case 3 -> // COMPLETE
+                                            sendHandshakeAck(session, (byte) 5); // COMPLETE
                                 }
-                            } finally {
-                                buf.release();
                             }
                         }
+                    } finally {
+                        buf.release();
                     }
-                    default -> {}
                 }
             }
+            default -> {}
         }
     }
 
