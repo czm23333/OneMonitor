@@ -1,5 +1,7 @@
 package io.github.czm23333.onemonitor;
 
+import io.github.czm23333.onemonitor.stats.StatInfo;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,6 +15,7 @@ public class Config {
     public static Config INSTANCE;
     public _Telegram telegram = new _Telegram();
     public _Minecraft minecraft = new _Minecraft();
+    public StatInfo stat = new StatInfo();
 
     public static void init() {
         Path configPath = Path.of(CONFIG);

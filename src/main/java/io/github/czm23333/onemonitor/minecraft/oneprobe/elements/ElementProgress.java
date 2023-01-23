@@ -2,6 +2,9 @@ package io.github.czm23333.onemonitor.minecraft.oneprobe.elements;
 
 import guru.nidi.graphviz.model.Node;
 import io.github.czm23333.onemonitor.minecraft.utils.GraphUtil;
+import org.barfuin.texttree.api.DefaultNode;
+
+import java.util.List;
 
 public class ElementProgress extends Element {
     public long current;
@@ -39,7 +42,7 @@ public class ElementProgress extends Element {
     }
 
     @Override
-    public Node toTree() {
+    public Node toGraph() {
         return GraphUtil.newNode("Progress (Element)")
                 .link(GraphUtil.newNode(current + " (Current)"), GraphUtil.newNode(max + " (Max)"),
                         GraphUtil.newNode(width + " (Width)"), GraphUtil.newNode(height + " (Height)"),
@@ -51,5 +54,24 @@ public class ElementProgress extends Element {
                         GraphUtil.newNode(showText + " (ShowText)"),
                         GraphUtil.newNode(numberFormat + " (NumberFormat)"), GraphUtil.newNode(lifeBar + " (LifeBar)"),
                         GraphUtil.newNode(armorBar + " (ArmorBar)"));
+    }
+
+    @Override
+    public DefaultNode toTree() {
+        return new DefaultNode("Progress", null, null, "element",
+                List.of(new DefaultNode(String.valueOf(current), null, null, "current", null),
+                        new DefaultNode(String.valueOf(max), null, null, "max", null),
+                        new DefaultNode(String.valueOf(width), null, null, "width", null),
+                        new DefaultNode(String.valueOf(height), null, null, "height", null),
+                        new DefaultNode(prefix, null, null, "prefix", null),
+                        new DefaultNode(suffix, null, null, "suffix", null),
+                        new DefaultNode(String.valueOf(borderColor), null, null, "borderColor", null),
+                        new DefaultNode(String.valueOf(filledColor), null, null, "filledColor", null),
+                        new DefaultNode(String.valueOf(alternateFilledColor), null, null, "alternateFilledColor", null),
+                        new DefaultNode(String.valueOf(backgroundColor), null, null, "backgroundColor", null),
+                        new DefaultNode(String.valueOf(showText), null, null, "showText", null),
+                        new DefaultNode(String.valueOf(numberFormat), null, null, "numberFormat", null),
+                        new DefaultNode(String.valueOf(lifeBar), null, null, "lifeBar", null),
+                        new DefaultNode(String.valueOf(armorBar), null, null, "armorBar", null)));
     }
 }

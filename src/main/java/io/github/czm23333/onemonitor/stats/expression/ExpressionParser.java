@@ -115,7 +115,7 @@ public class ExpressionParser {
                     else break loop;
                 }
                 default -> {
-                    if (FunctionManager.ID_BEGIN_CHARS.contains(c)) {
+                    if (FunctionMapping.ID_BEGIN_CHARS.contains(c)) {
                         expression.reset();
                         completeNode(stack, parseFunctionCall(expression));
                         break;
