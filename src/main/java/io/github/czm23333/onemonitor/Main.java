@@ -67,6 +67,33 @@ public class Main {
                 return result;
             } else throw new IllegalExpressionException("Illegal argument type");
         });
+        FunctionMapping.register("substr", para -> {
+            if (para.size() == 3) {
+                if (para.get(0) instanceof String str && para.get(1) instanceof Double l &&
+                    para.get(2) instanceof Double r) try {
+                    return str.substring(l.intValue(), r.intValue());
+                } catch (IndexOutOfBoundsException e) {
+                    throw new IllegalExpressionException("Illegal index: ", e);
+                }
+                else throw new IllegalExpressionException("Illegal argument type");
+            } else if (para.size() == 2) {
+                if (para.get(0) instanceof String str && para.get(1) instanceof Double l) try {
+                    return str.substring(l.intValue());
+                } catch (IndexOutOfBoundsException e) {
+                    throw new IllegalExpressionException("Illegal index: ", e);
+                }
+                else throw new IllegalExpressionException("Illegal argument type");
+            } else throw new IllegalExpressionException("Illegal argument length");
+        });
+        FunctionMapping.register("stod", para -> {
+            if (para.size() != 1) throw new IllegalExpressionException("Illegal argument length");
+            if (para.get(0) instanceof String str) try {
+                return Double.parseDouble(str);
+            } catch (NumberFormatException e) {
+                throw new IllegalExpressionException("Illegal format: ", e);
+            }
+            else throw new IllegalExpressionException("Illegal argument type");
+        });
 
         Config.init();
 
