@@ -2,7 +2,10 @@ package io.github.czm23333.onemonitor.stats.expression.node;
 
 import io.github.czm23333.onemonitor.stats.expression.exception.IllegalExpressionException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DivideNode extends BiNode {
     private Node leftOp;
@@ -15,10 +18,39 @@ public class DivideNode extends BiNode {
 
     @Override
     public Object execute(Map<String, Object> env) {
-        if (leftOp.execute(env) instanceof Double l && rightOp.execute(env) instanceof Double r) {
-            if (r == 0) throw new IllegalExpressionException("Tried dividing with zero");
-            else return l / r;
-        } else throw new IllegalExpressionException("Tried dividing non-double values");
+        Object lop = leftOp.execute(env);
+        Object rop = rightOp.execute(env);
+        switch (lop) {
+            case Double l && rop instanceof Double r:
+                if (r == 0) throw new IllegalExpressionException("Tried dividing with zero");
+                return l / r;
+            case List<?> l && rop instanceof Double r:
+                if (r == 0) throw new IllegalExpressionException("Tried dividing with zero");
+                return l.stream().map(v -> {
+                    if (v instanceof Double d) return d / r;
+                    else throw new IllegalExpressionException("Tried dividing non-double values");
+                }).collect(Collectors.toList());
+            case Double l && rop instanceof List<?> r:
+                return r.stream().map(v -> {
+                    if (v instanceof Double d) {
+                        if (d == 0) throw new IllegalExpressionException("Tried dividing with zero");
+                        return l / d;
+                    } else throw new IllegalExpressionException("Tried dividing non-double values");
+                }).collect(Collectors.toList());
+            case List<?> l && rop instanceof List<?> r:
+                if (l.size() != r.size())
+                    throw new IllegalExpressionException("Tried dividing two lists with different length");
+                ArrayList<Double> result = new ArrayList<>();
+                for (int i = 0, bound = l.size(); i < bound; ++i) {
+                    if (l.get(i) instanceof Double lv && r.get(i) instanceof Double rv) {
+                        if (rv == 0) throw new IllegalExpressionException("Tried dividing with zero");
+                        result.add(lv / rv);
+                    } else throw new IllegalExpressionException("Tried dividing non-double values");
+                }
+                return result;
+            default:
+                throw new IllegalExpressionException("Tried dividing non-double values");
+        }
     }
 
     @Override

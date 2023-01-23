@@ -87,30 +87,67 @@ public class GetAttributeNode extends Node {
     }
 
     private static Object convertDataType(Object value) {
-        if (value instanceof Number num) return num.doubleValue();
-        else if (value instanceof String) return value;
-        else throw new IllegalExpressionException("Unsupported data type: " + value.getClass().getName());
+        switch (value) {
+            case Number num:
+                return num.doubleValue();
+            case byte[] byteArray: {
+                List<Double> result = new ArrayList<>();
+                for (byte b : byteArray) result.add((double) b);
+                return result;
+            }
+            case int[] intArray:
+                return Arrays.stream(intArray).asDoubleStream().boxed().collect(Collectors.toList());
+            case long[] longArray:
+                return Arrays.stream(longArray).asDoubleStream().boxed().collect(Collectors.toList());
+            case double[] doubleArray:
+                return Arrays.stream(doubleArray).boxed().collect(Collectors.toList());
+            case float[] floatArray: {
+                List<Double> result = new ArrayList<>();
+                for (float f : floatArray) result.add((double) f);
+                return result;
+            }
+            case short[] shortArray: {
+                List<Double> result = new ArrayList<>();
+                for (short s : shortArray) result.add((double) s);
+                return result;
+            }
+            case List<?> list:
+                return list.stream().map(v -> v instanceof Number ? ((Number) v).doubleValue() : v)
+                        .collect(Collectors.toList());
+            case null:
+                throw new IllegalExpressionException("Null value is not allowed");
+            default:
+                return value;
+        }
     }
 
-    @Override
-    public Object execute(Map<String, Object> env) {
-        Object opValue = op == null ? env : op.execute(env);
-        Object attr = attribute.execute(env);
+    private static Object getAttr(Object opValue, Object attr) {
         if (attr instanceof Double id) if (opValue instanceof List<?> opList) {
             int index = id.intValue();
             if (opList.size() <= index) throw new IllegalExpressionException("Array index out of bound");
             return convertDataType(opList.get(index));
         } else throw new IllegalExpressionException("Tried getting by index on a non-list value");
         else if (attr instanceof String name) if (opValue instanceof Map<?, ?> opMap) {
-            if (opMap.containsKey(name)) return opMap.get(name);
-            else throw new IllegalExpressionException("Illegal attribute name");
+            if (opMap.containsKey(name)) return convertDataType(opMap.get(name));
+            else throw new IllegalExpressionException("Illegal attribute name: " + name);
         } else if (opValue instanceof CompoundTag opTag) if (opTag.contains(name)) return convertTag(opTag.get(name));
-        else throw new IllegalExpressionException("Illegal attribute name");
+        else throw new IllegalExpressionException("Illegal attribute name: " + name);
         else try {
                 return convertDataType(opValue.getClass().getDeclaredField(name).get(opValue));
             } catch (IllegalAccessException | NoSuchFieldException e) {
-                throw new IllegalExpressionException("Illegal attribute name", e);
+                throw new IllegalExpressionException("Illegal attribute name: " + name, e);
             }
         else throw new IllegalExpressionException("Illegal attribute");
+    }
+
+    @Override
+    public Object execute(Map<String, Object> env) {
+        Object attr = attribute.execute(env);
+        if (op instanceof SpreadNode)
+            return ((List<?>) op.execute(env)).stream().map(v -> getAttr(v, attr)).collect(Collectors.toList());
+        else {
+            Object opValue = op == null ? env : op.execute(env);
+            return getAttr(opValue, attr);
+        }
     }
 }

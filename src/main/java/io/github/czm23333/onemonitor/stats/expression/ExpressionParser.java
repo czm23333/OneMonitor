@@ -5,12 +5,11 @@ import io.github.czm23333.onemonitor.stats.expression.node.*;
 import it.unimi.dsi.fastutil.Pair;
 
 import java.nio.CharBuffer;
-import java.util.ArrayDeque;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class ExpressionParser {
-    private static final Set<Character> OP_CHARS = Set.of('+', '-', '*', '/', '"', '(', ')', '[', ']');
+    private static final Set<Character> OP_CHARS = Set.of('+', '-', '*', '/', '"', '.', ',', '(', ')', '[', ']', '{',
+            '}');
 
     public static Node parse(String str) {
         return parse(CharBuffer.wrap(str), true);
@@ -75,7 +74,7 @@ public class ExpressionParser {
                 }
                 case '(' -> completeNode(stack, new SealedNode(parse(expression, false)));
                 case ')' -> {
-                    if (root) throw new IllegalExpressionException("Curly brackets don't match");
+                    if (root) throw new IllegalExpressionException("Parentheses don't match");
                     else break loop;
                 }
                 case '[' -> {
@@ -95,11 +94,37 @@ public class ExpressionParser {
                     else break loop;
                 }
                 case '"' -> completeNode(stack, parseString(expression));
+                case '.' -> {
+                    if (!stack.isEmpty() && stack.getFirst().right()) {
+                        Node last = Objects.requireNonNull(stack.pollLast()).left();
+                        if (last instanceof BiNode biNode) {
+                            SpreadNode node = new SpreadNode(biNode.getRight());
+                            biNode.setRight(null);
+                            incompleteNode(stack, biNode);
+                            completeNode(stack, node);
+                        } else completeNode(stack, new SpreadNode(last));
+                    } else throw new IllegalExpressionException("Illegal spread");
+                }
+                case ',' -> {
+                    if (root) throw new IllegalExpressionException("Unexpected comma");
+                    else break loop;
+                }
+                case '{' -> completeNode(stack, parseList(expression));
+                case '}' -> {
+                    if (root) throw new IllegalExpressionException("Curly brackets don't match");
+                    else break loop;
+                }
                 default -> {
+                    if (FunctionManager.ID_BEGIN_CHARS.contains(c)) {
+                        expression.reset();
+                        completeNode(stack, parseFunctionCall(expression));
+                        break;
+                    }
                     if (!Character.isSpaceChar(c)) throw new IllegalExpressionException("Unexpected char: " + c);
                 }
             }
         }
+        if (stack.isEmpty()) return null;
         if (stack.size() != 1 || !stack.getFirst().right())
             throw new IllegalExpressionException("Incomplete expression");
         return stack.getFirst().left();
@@ -138,6 +163,7 @@ public class ExpressionParser {
     private static StringNode parseString(CharBuffer expression) {
         StringBuilder builder = new StringBuilder();
         while (expression.hasRemaining()) {
+            expression.mark();
             char c = expression.get();
             if (c == '\\') if (expression.hasRemaining()) {
                 char nxt = expression.get();
@@ -149,5 +175,47 @@ public class ExpressionParser {
             else builder.append(c);
         }
         return new StringNode(builder.toString());
+    }
+
+    private static CallNode parseFunctionCall(CharBuffer expression) {
+        StringBuilder builder = new StringBuilder();
+        while (expression.hasRemaining()) {
+            expression.mark();
+            char c = expression.get();
+            if (c == '(') break;
+            else builder.append(c);
+        }
+        String id = builder.toString();
+        List<Node> parameter = new ArrayList<>();
+        boolean flag = false;
+        while (expression.hasRemaining()) {
+            Node para = parse(expression, false);
+            if (para != null) parameter.add(para);
+            expression.reset();
+            char c = expression.get();
+            if (c == ')') {
+                flag = true;
+                break;
+            } else if (c != ',') throw new IllegalExpressionException("Illegal parameter list");
+        }
+        if (!flag) throw new IllegalExpressionException("Incomplete parameter list");
+        return new CallNode(id, parameter);
+    }
+
+    private static ListNode parseList(CharBuffer expression) {
+        List<Node> element = new ArrayList<>();
+        boolean flag = false;
+        while (expression.hasRemaining()) {
+            Node elem = parse(expression, false);
+            if (elem != null) element.add(elem);
+            expression.reset();
+            char c = expression.get();
+            if (c == '}') {
+                flag = true;
+                break;
+            } else if (c != ',') throw new IllegalExpressionException("Illegal element list");
+        }
+        if (!flag) throw new IllegalExpressionException("Incomplete element list");
+        return new ListNode(element);
     }
 }
